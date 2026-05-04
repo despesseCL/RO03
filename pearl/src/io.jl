@@ -60,7 +60,7 @@ function displayGrid(n::Int, pearls::Matrix{Char})
             c = pearls[i, j]
             if c == '2'
                 row *= " ● |"
-            elseif c == 'W'
+            elseif c == '1'
                 row *= " ○ |"
             else
                 row *= "   |"
