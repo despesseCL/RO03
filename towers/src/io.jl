@@ -10,21 +10,45 @@ Read an instance from an input file
 - Argument:
 inputFile: path of the input file
 """
+
 function readInputFile(inputFile::String)
-
-    # Open the input file
+    # Lire le fichier
     datafile = open(inputFile)
-    lines = readlines(datafile)
+    data = readlines(datafile)
+    data = filter(l -> strip(l) != "", data)
     close(datafile)
-    lines = filter(l -> strip(l) != "", lines)
+    if isempty(data)
+        error("Fichier vide après nettoyage")
+    end
     n = length(split(data[1], ","))
-    t = Matrix{Int64}(undef, n, n)
-    lineNb = 1
-    for line in data
-        println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
 
+    # Initialisation des matrices
+    d = Matrix{Int}(undef, 4, n)
+    c = Matrix{Int}(undef, n, n)
+    # Remplir d (premier bloc)
+    for i in 1:4
+        lineSplit = split(data[i], ",")
+        for j in 1:n
+            val = strip(lineSplit[j])
+            if isempty(val)
+                d[i, j] = 0
+            else d[i, j] = parse(Int, val)
+            end
+        end
     end
 
+    # Remplir c (deuxième bloc)
+    for i in 1:n
+        lineSplit = split(data[4 + i], ",")
+        for j in 1:n
+            val = strip(lineSplit[j])
+            if isempty(val)
+                c[i, j] = 0
+            else c[i, j] = parse(Int, val)
+            end
+        end
+    end
+    return d, c
 end
 
 
