@@ -8,11 +8,45 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(n::int,d::Matrix{Int}, g::Matrix{Int})
 
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
-
+    # x[i, j, k] = 1 if cell (i, j) has value k
+    @variable(m, x[1:n, 1:n, 1:n], Bin)
+    @variable(m, v[1:n, 1:n, 1:4], Bin)
+    # Set the fixed value in the grid
+    for i in 1:n
+        for j in 1:n
+            if g[i,j] != 0
+                @constraint(m, x[i,j,g[i,j]] == 1)
+            end
+        end
+    end
+    # Set the obvious cells (if 1 on n on the sides)
+    for j in 1:n
+        if d[1,j] == 1
+            @constraint(m, x[1,j,n] == 1)
+        if d[2,j] == 1
+            @constraint(m, x[j,1,n] == 1)
+        if d[3,j] == 1
+            @constraint(m, x[j,n,n] == 1)
+        if d[4,j] == 1
+            @constraint(m, x[n,j,n] == 1)  
+# If n on the side then linear increasing on rows or columns   
+        if d[1,j] == n
+            for i in 1:n
+                @constraint(m, x[i,j,i] == 1)
+        if d[2,j] == n
+            for i in 1:n
+                @constraint(m, x[j,i,i] == 1)
+        if d[3,j] == n
+            for i in 1:n
+                @constraint(m, x[j,n-i+1,i] == 1)
+        if d[4,j] == n
+            for i in 1:n
+                @constraint(m, x[n-i+1,j,i] == 1)
+    
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
 

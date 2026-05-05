@@ -24,7 +24,7 @@ function readInputFile(inputFile::String)
 
     # Initialisation des matrices
     d = Matrix{Int}(undef, 4, n)
-    c = Matrix{Int}(undef, n, n)
+    g = Matrix{Int}(undef, n, n)
     # Remplir d (premier bloc)
     for i in 1:4
         lineSplit = split(data[i], ",")
@@ -43,12 +43,12 @@ function readInputFile(inputFile::String)
         for j in 1:n
             val = strip(lineSplit[j])
             if isempty(val)
-                c[i, j] = 0
-            else c[i, j] = parse(Int, val)
+                g[i, j] = 0
+            else g[i, j] = parse(Int, val)
             end
         end
     end
-    return d, c
+    return n, d, g
 end
 
 
