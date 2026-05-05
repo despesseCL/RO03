@@ -53,21 +53,21 @@ end
 Affiche la grille initiale
 """
 function displayGrid(n::Int, pearls::Matrix{Int})
-    println("+" * ("---+" ^ n))
+    println("+" * ("-----+" ^ n))
     for i in 1:n
         row = "|"
         for j in 1:n
             c = pearls[i, j]
             if c == 2
-                row *= " ● |"
+                row *= "  ●  |"
             elseif c == 1
-                row *= " ○ |"
+                row *= "  ○  |"
             else
-                row *= "   |"
+                row *= "     |"
             end
         end
         println(row)
-        println("+" * ("---+" ^ n))
+        println("+" * ("-----+" ^ n))
     end
 end
 
@@ -84,9 +84,9 @@ function displaySolution(n::Int, pearls::Matrix{Int},
         for j in 1:n
             # Arête verticale au-dessus de (i,j) = v[i-1,j]
             if i > 1 && v[i-1, j] > 0.5
-                top *= "   +"
+                top *= "     +"
             else
-                top *= "---+"
+                top *= "-----+"
             end
         end
         println(top)
@@ -105,11 +105,11 @@ function displaySolution(n::Int, pearls::Matrix{Int},
             # Contenu de la case
             c = pearls[i, j]
             if c == 2
-                row *= " ● "
+                row *= "  ●  "
             elseif c == 1
-                row *= " ○ "
+                row *= "  ○  "
             else
-                row *= "   "
+                row *= "     "
             end
         end
         # Bord droit
@@ -119,28 +119,30 @@ function displaySolution(n::Int, pearls::Matrix{Int},
     # Dernière ligne du bas
     bottom = "+"
     for j in 1:n
-        bottom *= "---+"
+        bottom *= "-----+"
     end
     println(bottom)
 end
 
-# Données de test cohérentes
-n = 4
-pearls = [0 1 0  0; 0 0 0 0 ; 0 1 0 1 ; 0 0 2 1] # Matrice d'Int
+
 # 2. Création des segments (1.0 pour un trait, 0.0 pour du vide)
 # h[i, j] connecte la cellule (i, j) à (i, j+1)
 h = [
-    1.0  1.0  0.0 ;  # Ligne 1 : traits entre col 1-2 et col 2-3
-    1.0  0.0  1.0 ;  ## Ligne 2 : traits entre col 1-2 et col 2-3
-    0.0  0.0  0.0 ;  # Ligne 3 : aucun trait horizontal
-    0.0  1.0  1.0  # Ligne 4 : traits entre col 1-2 et col 2-3
+    1.0  1.0  0.0  1.0  1.0 ;
+    1.0  0.0  0.0  0.0  1.0 ;
+    0.0  0.0  1.0  0.0  1.0 ;
+    1.0  0.0  1.0  1.0  0.0 ;
+    0.0  0.0  1.0  0.0  0.0 ;
+    1.0  1.0  1.0  0.0  1.0 ;
 ]
 
 # v[i, j] connecte la cellule (i, j) à (i+1, j)
 v = [
-    1.0  0.0  1.0 0.0 ;
-    0.0  1.0  0.0 1.0 ; 
-    0.0  1.0  0.0 1.0  
+    1.0  0.0  1.0  1.0  0.0  1.0;
+    0.0  1.0  1.0  1.0  1.0  0.0;
+    0.0  1.0  0.0  0.0  0.0  1.0;
+    1.0  0.0  1.0  0.0  1.0  1.0;
+    1.0  0.0  0.0  1.0  1.0  1.0;
 ]
 
 # 3. Appel de ta fonction
