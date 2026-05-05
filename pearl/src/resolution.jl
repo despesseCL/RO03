@@ -19,8 +19,13 @@ function cplexSolve(n::Int, g::Matrix{Int})
 
     # h[i, j] = 1 if cells (i, j) and (i, j+1) are connected, 0 if not
     # v[i, j] = 1 if cells (i, j) and (i+1, j) are connected, 0 if not
+    # h[i, n] represents a theoretical connections between cells (i, n) and (i, 1), we will set it to zero
     
-    @variable(m, h[1:n, 1:n-1], v[1:n-1, 1:n], Bin)
+    @variable(m, h[1:n, 1:n], v[1:n, 1:n], Bin)
+    
+    # Set all the edges to zero
+    @constraint(m, [i in 1:n], h[i, n] == 0)
+    @constraint(m, [j in 1:n], v[n, j] == 0)
 
     # Set the obvious links for white and black pearls on the edges of the grid
     for i in 1:n
@@ -51,8 +56,7 @@ function cplexSolve(n::Int, g::Matrix{Int})
             @constraint(m, v[n-1, j] == 1)
             @constraint(m, v[n-2, j] == 1)
 
-    # Set the links going awaay from the edge for black pearls 1 cell away from the edge of the grid
-
+    # Set the links going away from the edge for black pearls 1 cell away from the edge of the grid
     for i in 1:n
         if g[i, 2] == 2
             @constraint(m, h[i, 2] == 1)
@@ -70,34 +74,37 @@ function cplexSolve(n::Int, g::Matrix{Int})
             @constraint(m, v[n-3, j] == 1)
 
     # Each cell is linked to two or zero adjacent cells
-    @constraint(m, [i in 2:n-1, j in 2:n-1], h[i,j]+h[i, j-1]+v[i, j]+v[i-1, j] == 0 || h[i,j]+h[i, j-1]+v[i, j]+v[i-1, j] == 2)
-    @constraint(m, [i in 2:n-1], h[i,1]+v[i, 1]+v[i-1, 1] == 0 || h[i,1]+v[i, 1]+v[i-1, 1] == 2)
+    @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 0 || h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 2)
+    "@constraint(m, [i in 2:n-1], h[i,1]+v[i, 1]+v[i-1, 1] == 0 || h[i,1]+v[i, 1]+v[i-1, 1] == 2)
     @constraint(m, [i in 2:n-1], h[i,n-1]+v[i, n]+v[i-1, n] == 0 || h[i, n-1]+v[i, n]+v[i-1, n] == 2)
     @constraint(m, [j in 2:n-1], h[1,j]+h[1, j-1]+v[1, j] == 0 || h[1,j]+h[1, j-1]+v[1, j] == 2)
     @constraint(m, [j in 2:n-1], h[n,j]+h[n, j-1]+v[n-1, j] == 0 || h[n,j]+h[n, j-1]+v[n-1, j] == 2)
     @constraint(m, h[1,1]+v[1,1] == 0 || h[1,1]+v[1,1] == 2)
     @constraint(m, h[1,n-1]+v[1,n] == 0 || h[1,n-1]+v[1,n] == 2)
     @constraint(m, h[n,1]+v[n-1,1] == 0 || h[n,1]+v[n-1,1] == 2)
-    @constraint(m, h[n,n-1]+v[n-1,n] == 0 || h[n,n-1]+v[n-1,n] == 2)
+    @constraint(m, h[n,n-1]+v[n-1,n] == 0 || h[n,n-1]+v[n-1,n] == 2)"
 
-    # Each cell (i, j) has one value k
-    @constraint(m, [i in 1:n, j in 1:n], sum(x[i, j, k] for k in 1:n) == 1)
+    # Additional constraints specific to the pearls
+    for i in 1:n
+        for j in 1:n
+            if g[i, j] == 1
+                @constraint(m, h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 2)
+                @constraint(m, v[(i-2)%n + 1, j] + v[i, j] == 0 || v[(i-2)%n + 1, j] + v[i, j] == 2)
+                @constraint(m, h[i, (j-2)%n + 1] + h[i,j] == 0 || h[i, (j-2)%n + 1] + h[i,j] == 2)
+                @constraint(m, h[i, j] => {v[(i-2)%n+1, (j-2)%n+1] + v[(i-2)%n+1, j%n+1] + v[i, (j-2)%n+1] + v[i, j%n+1] >= 1})
+                @constraint(m, v[i, j] => {h[(i-2)%n+1, (j-2)%n+1] + h[(i-2)%n+1, j] + v[i%n+1, (j-2)%n+1] + v[i%n+1, j] >= 1})
 
-    # Each line l has one cell with value k
-    @constraint(m, [k in 1:n, l in 1:n], sum(x[l, j, k] for j in 1:n) == 1)
+            if g[i, j] == 2
+                @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 2)
+                @constraint(m, v[(i-2)%n+1, j] + v[i, j] == 1)
+                @constraint(m, h[i, (j-2)%n+1] + h[i, j] == 1)
+                @constraint(m, v[(i-2)%n+1, j] => {v[(i-3)%n+1, j] == 1})
+                @constraint(m, v[i, j] => {v[i%n+1, j] == 1})
+                @constraint(m, h[i, (j-2)%n+1] => {h[i, (j-3)%n+1] == 1})
+                @constraint(m, h[i, j] => {v[i, j%n+1] == 1})
 
-    # Each column c has one cell with value k
-    @constraint(m, [k in 1:n, c in 1:n], sum(x[i, c, k] for i in 1:n) == 1)
-
-    # Get the size of a block
-    blockSize = round.(Int, sqrt(n))
-
-    # Each block has one cell with value k
-    # (lTop, cLeft) is the top left cell of each block
-    @constraint(m, [lTop in 1:blockSize:n, cLeft in 1:blockSize:n, k in 1:n], sum(x[lTop+i, cLeft+j, k] for i in 0:blockSize-1, j in 0:blockSize-1) == 1)
-
-    # Maximize the top-left cell (reduce the problem symmetry)
-    @objective(m, Max, sum(x[1, 1, k] for k in 1:n))
+    # Minimize the length of the loop
+    @objective(m, Min, sum(v[i, j]+h[i,j] for i in 1:n, j in 1:n))
 
 
     # Start a chronometer
@@ -109,7 +116,7 @@ function cplexSolve(n::Int, g::Matrix{Int})
     # Return:
     # 1 - true if an optimum is found
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
+    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, h, v, time() - start
     
 end
 
