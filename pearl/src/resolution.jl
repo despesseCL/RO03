@@ -116,7 +116,7 @@ function cplexSolve(n::Int, g::Matrix{Int})
     # Return:
     # 1 - true if an optimum is found
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
+    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, h, v, time() - start
     
 end
 
