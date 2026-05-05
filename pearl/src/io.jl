@@ -26,27 +26,27 @@ Retourne :
   - n        : taille de la grille
   - pearls   : matrice n×n de Char  ('0'=vide, '2'=noire, '1'=blanche)
 """
-function readInputFile(path::String)
-    open(path, "r") do f
-        lines = readlines(f)
-        lines = filter(l -> strip(l) != "", lines)
-        n = parse(Int, strip(lines[1]))
-        pearls = fill(0, n, n)
-        for i in 1:n
-            tokens = split(lines[i+1], ",")
-            for j in 1:n
-                t = strip(tokens[j])
-                if t == "2"
-                    pearls[i, j] = 2
-                elseif t == "1"
-                    pearls[i, j] = 1
-                else
-                    pearls[i, j] = 0
-                end
+function readInputFile(inputFile::String)
+    datafile = open(inputFile)
+    lines = readlines(datafile)
+    close(datafile)
+    lines = filter(l -> strip(l) != "", lines)
+    n = length(split(lines[1], ","))
+    pearls = Matrix{Int64}(undef, n, n)
+    for i in 1:n
+        lineSplit = split(lines[i], ",")
+        for j in 1:n
+            t = strip(lineSplit[j])
+            if t == "2"
+                pearls[i, j] = 2
+            elseif t == "1"
+                pearls[i, j] = 1
+            else
+                pearls[i, j] = 0
             end
-        end
-        return n, pearls
+        end        
     end
+    return n, pearls
 end
 
 """
