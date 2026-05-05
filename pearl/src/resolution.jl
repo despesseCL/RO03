@@ -1,7 +1,7 @@
 # This file contains methods to solve an instance (heuristically or with CPLEX)
 using CPLEX
 
-include("generation.jl")
+#include("generation.jl")
 
 TOL = 0.00001
 
@@ -123,6 +123,7 @@ end
 """
 Heuristically solve an instance
 """
+"""
 function heuristicSolve()
 
     # TODO
@@ -130,13 +131,13 @@ function heuristicSolve()
     
 end 
 
-"""
+
 Solve all the instances contained in "../data" through CPLEX and heuristics
 
 The results are written in "../res/cplex" and "../res/heuristic"
 
 Remark: If an instance has previously been solved (either by cplex or the heuristic) it will not be solved again
-"""
+
 function solveDataSet()
 
     dataFolder = "../data/"

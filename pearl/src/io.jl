@@ -124,6 +124,7 @@ function displaySolution(n::Int, pearls::Matrix{Int},
     println(bottom)
 end
 
+n = 6
 
 # 2. Création des segments (1.0 pour un trait, 0.0 pour du vide)
 # h[i, j] connecte la cellule (i, j) à (i, j+1)
