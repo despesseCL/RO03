@@ -74,7 +74,7 @@ function cplexSolve(n::Int, g::Matrix{Int})
             @constraint(m, v[n-3, j] == 1)
 
     # Each cell is linked to two or zero adjacent cells
-    @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 0 || h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 2)
+    @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 0 || h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
     "@constraint(m, [i in 2:n-1], h[i,1]+v[i, 1]+v[i-1, 1] == 0 || h[i,1]+v[i, 1]+v[i-1, 1] == 2)
     @constraint(m, [i in 2:n-1], h[i,n-1]+v[i, n]+v[i-1, n] == 0 || h[i, n-1]+v[i, n]+v[i-1, n] == 2)
     @constraint(m, [j in 2:n-1], h[1,j]+h[1, j-1]+v[1, j] == 0 || h[1,j]+h[1, j-1]+v[1, j] == 2)
@@ -88,20 +88,20 @@ function cplexSolve(n::Int, g::Matrix{Int})
     for i in 1:n
         for j in 1:n
             if g[i, j] == 1
-                @constraint(m, h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 2)
-                @constraint(m, v[(i-2)%n + 1, j] + v[i, j] == 0 || v[(i-2)%n + 1, j] + v[i, j] == 2)
-                @constraint(m, h[i, (j-2)%n + 1] + h[i,j] == 0 || h[i, (j-2)%n + 1] + h[i,j] == 2)
-                @constraint(m, h[i, j] => {v[(i-2)%n+1, (j-2)%n+1] + v[(i-2)%n+1, j%n+1] + v[i, (j-2)%n+1] + v[i, j%n+1] >= 1})
-                @constraint(m, v[i, j] => {h[(i-2)%n+1, (j-2)%n+1] + h[(i-2)%n+1, j] + v[i%n+1, (j-2)%n+1] + v[i%n+1, j] >= 1})
+                @constraint(m, h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
+                @constraint(m, v[mod1(i-1,n), j] + v[i, j] == 0 || v[mod1(i-1,n), j] + v[i, j] == 2)
+                @constraint(m, h[i, mod1(j-1,n)] + h[i,j] == 0 || h[i, mod1(j-1,n)] + h[i,j] == 2)
+                @constraint(m, h[i, j] == 1 => {v[mod1(i-1,n), mod1(j-1,n)] + v[mod1(i-1,n), mod(j+1,n)] + v[i, mod1(j-1,n)] + v[i, mod1(j+1,n)] >= 1})
+                @constraint(m, v[i, j] == 1 => {h[mod1(i-1,n), mod1(j-1,n)] + h[mod1(i-1,n), j] + v[mod1(i+1,n), mod1(j-1,n)] + v[mod1(i+1,n), j] >= 1})
 
             if g[i, j] == 2
-                @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, (j-2)%n+1]+v[i, j]+v[(i-2)%n+1, j] == 2)
-                @constraint(m, v[(i-2)%n+1, j] + v[i, j] == 1)
-                @constraint(m, h[i, (j-2)%n+1] + h[i, j] == 1)
-                @constraint(m, v[(i-2)%n+1, j] => {v[(i-3)%n+1, j] == 1})
-                @constraint(m, v[i, j] => {v[i%n+1, j] == 1})
-                @constraint(m, h[i, (j-2)%n+1] => {h[i, (j-3)%n+1] == 1})
-                @constraint(m, h[i, j] => {v[i, j%n+1] == 1})
+                @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
+                @constraint(m, v[mod1(i-1,n), j] + v[i, j] == 1)
+                @constraint(m, h[i, mod1(j-1,n)] + h[i, j] == 1)
+                @constraint(m, v[mod1(i-1,n), j] == 1 => {v[mod1(i-2,n), j] == 1})
+                @constraint(m, v[i, j] == 1 => {v[mod1(i+1,n), j] == 1})
+                @constraint(m, h[i, mod1(j-1,n)] == 1 => {h[i, mod1(j-2,n)] == 1})
+                @constraint(m, h[i, j] == 1 => {v[i, mod1(j+1,n)] == 1})
 
     # Minimize the length of the loop
     @objective(m, Min, sum(v[i, j]+h[i,j] for i in 1:n, j in 1:n))
