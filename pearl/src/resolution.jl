@@ -1,5 +1,7 @@
 # This file contains methods to solve an instance (heuristically or with CPLEX)
+using JuMP
 using CPLEX
+import MathOptInterface as MOI
 
 #include("generation.jl")
 
@@ -11,7 +13,7 @@ Solve an instance with CPLEX
 function cplexSolve(n::Int, g::Matrix{Int})
 
     # Create the model
-    m = Model(with_optimizer(CPLEX.Optimizer))
+    m = Model(CPLEX.Optimizer)
 
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
@@ -21,60 +23,83 @@ function cplexSolve(n::Int, g::Matrix{Int})
     # v[i, j] = 1 if cells (i, j) and (i+1, j) are connected, 0 if not
     # h[i, n] represents a theoretical connections between cells (i, n) and (i, 1), we will set it to zero
     
-    @variable(m, h[1:n, 1:n], v[1:n, 1:n], Bin)
+    @variable(m, h[1:n, 1:n], Bin)
+    @variable(m, v[1:n, 1:n], Bin)
+
+    @variable(m, z[1:n, 1:n], Bin)
+    @variable(m, y[1:n, 1:n], Bin)
+    @variable(m, x[1:n, 1:n], Bin)
+
     
     # Set all the edges to zero
     @constraint(m, [i in 1:n], h[i, n] == 0)
     @constraint(m, [j in 1:n], v[n, j] == 0)
-
+    
     # Set the obvious links for white and black pearls on the edges of the grid
     for i in 1:n
         if g[i,1] == 1
             @constraint(m, v[i,1] == 1)
             @constraint(m, v[i-1, 1] == 1)
+        end
         if g[i,1] == 2
             @constraint(m, h[i,1] == 1)
             @constraint(m, h[i, 2] == 1)
+        end
         if g[i,n] == 1
             @constraint(m, v[i,n] == 1)
             @constraint(m, v[i-1, n] == 1)
+        end
         if g[i,n] == 2
             @constraint(m, h[i,n-1] == 1)
             @constraint(m, h[i, n-2] == 1)
+        end
+    end
     
     for j in 1:n
         if g[1,j] == 1
             @constraint(m, h[1, j] == 1)
-            @constraint(m, h[1, j-1] == 1)
-        if g[i,1] == 2
+            @constraint(m, h[1, mod1(j-1,n)] == 1)
+        end
+        if g[1,j] == 2
             @constraint(m, v[1, j] == 1)
             @constraint(m, v[2, j] == 1)
+        end
         if g[n,j] == 1
             @constraint(m, h[n, j] == 1)
             @constraint(m, h[n, j-1] == 1)
-        if g[i,1] == 2
+        end
+        if g[n,j] == 2
             @constraint(m, v[n-1, j] == 1)
             @constraint(m, v[n-2, j] == 1)
+        end
+    end
+
 
     # Set the links going away from the edge for black pearls 1 cell away from the edge of the grid
     for i in 1:n
         if g[i, 2] == 2
             @constraint(m, h[i, 2] == 1)
             @constraint(m, h[i, 3] == 1)
+        end
         if g[i, n-1] == 2
             @constraint(m, h[i, n-2] == 1)
             @constraint(m, h[i, n-3] == 1)
+        end
+    end
 
     for j in 1:n
         if g[2, j] == 2
             @constraint(m, v[2, j] == 1)
             @constraint(m, v[3, j] == 1)
+        end
         if g[n-1, j] == 2
             @constraint(m, v[n-2, j] == 1)
             @constraint(m, v[n-3, j] == 1)
+        end
+    end
 
     # Each cell is linked to two or zero adjacent cells
-    @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 0 || h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
+    @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2*z[i,j])
     "@constraint(m, [i in 2:n-1], h[i,1]+v[i, 1]+v[i-1, 1] == 0 || h[i,1]+v[i, 1]+v[i-1, 1] == 2)
     @constraint(m, [i in 2:n-1], h[i,n-1]+v[i, n]+v[i-1, n] == 0 || h[i, n-1]+v[i, n]+v[i-1, n] == 2)
     @constraint(m, [j in 2:n-1], h[1,j]+h[1, j-1]+v[1, j] == 0 || h[1,j]+h[1, j-1]+v[1, j] == 2)
@@ -89,22 +114,24 @@ function cplexSolve(n::Int, g::Matrix{Int})
         for j in 1:n
             if g[i, j] == 1
                 @constraint(m, h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
-                @constraint(m, v[mod1(i-1,n), j] + v[i, j] == 0 || v[mod1(i-1,n), j] + v[i, j] == 2)
-                @constraint(m, h[i, mod1(j-1,n)] + h[i,j] == 0 || h[i, mod1(j-1,n)] + h[i,j] == 2)
-                @constraint(m, h[i, j] == 1 => {v[mod1(i-1,n), mod1(j-1,n)] + v[mod1(i-1,n), mod(j+1,n)] + v[i, mod1(j-1,n)] + v[i, mod1(j+1,n)] >= 1})
-                @constraint(m, v[i, j] == 1 => {h[mod1(i-1,n), mod1(j-1,n)] + h[mod1(i-1,n), j] + v[mod1(i+1,n), mod1(j-1,n)] + v[mod1(i+1,n), j] >= 1})
-
+                @constraint(m, v[mod1(i-1,n), j] + v[i, j] == 2*y[i,j])
+                @constraint(m, h[i, mod1(j-1,n)] + h[i,j] == 2*x[i,j])
+                @constraint(m, h[i, j] => {v[mod1(i-1,n), mod1(j-1,n)] + v[mod1(i-1,n), mod(j+1,n)] + v[i, mod1(j-1,n)] + v[i, mod1(j+1,n)] >= 1})
+                @constraint(m, v[i, j] => {h[mod1(i-1,n), mod1(j-1,n)] + h[mod1(i-1,n), j] + h[mod1(i+1,n), mod1(j-1,n)] + h[mod1(i+1,n), j] >= 1})
+            end
             if g[i, j] == 2
-                @constraint(m, [i in 1:n, j in 1:n], h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
+                @constraint(m, h[i,j]+h[i, mod1(j-1,n)]+v[i, j]+v[mod1(i-1,n), j] == 2)
                 @constraint(m, v[mod1(i-1,n), j] + v[i, j] == 1)
                 @constraint(m, h[i, mod1(j-1,n)] + h[i, j] == 1)
-                @constraint(m, v[mod1(i-1,n), j] == 1 => {v[mod1(i-2,n), j] == 1})
-                @constraint(m, v[i, j] == 1 => {v[mod1(i+1,n), j] == 1})
-                @constraint(m, h[i, mod1(j-1,n)] == 1 => {h[i, mod1(j-2,n)] == 1})
-                @constraint(m, h[i, j] == 1 => {v[i, mod1(j+1,n)] == 1})
-
+                @constraint(m, v[mod1(i-1,n), j] => {v[mod1(i-2,n), j] == 1})
+                @constraint(m, v[i, j] => {v[mod1(i+1,n), j] == 1})
+                @constraint(m, h[i, mod1(j-1,n)] => {h[i, mod1(j-2,n)] == 1})
+                @constraint(m, h[i, j] => {h[i, mod1(j+1,n)] == 1})
+            end
+        end
+    end
     # Minimize the length of the loop
-    @objective(m, Min, sum(v[i, j]+h[i,j] for i in 1:n, j in 1:n))
+    #@objective(m, Min, sum(v[i, j]+h[i,j] for i in 1:n, j in 1:n))
 
 
     # Start a chronometer
@@ -113,17 +140,25 @@ function cplexSolve(n::Int, g::Matrix{Int})
     # Solve the model
     optimize!(m)
 
+    """compute_conflict!(m)
+    for (F, S) in list_of_constraint_types(m)
+        for con in all_constraints(m, F, S)
+            if MOI.get(m, MOI.ConstraintConflictStatus(), con) == MOI.IN_CONFLICT
+                println(con)
+            end
+        end
+    end
+    println(termination_status(m))"""
     # Return:
     # 1 - true if an optimum is found
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, h, v, time() - start
+    return JuMP.primal_status(m) == JuMP.MOI.FEASIBLE_POINT, value.(h), value.(v), time() - start
     
 end
 
 """
 Heuristically solve an instance
-"""
-"""
+
 function heuristicSolve()
 
     # TODO
@@ -245,3 +280,5 @@ function solveDataSet()
         end         
     end 
 end
+
+"""
