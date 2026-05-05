@@ -14,14 +14,13 @@ function readInputFile(inputFile::String)
 
     # Open the input file
     datafile = open(inputFile)
-
-    data = readlines(datafile)
+    lines = readlines(datafile)
     close(datafile)
-
-    # For each line of the input file
+    lines = filter(l -> strip(l) != "", lines)
+    n = length(split(data[1], ","))
+    t = Matrix{Int64}(undef, n, n)
+    lineNb = 1
     for line in data
-
-        # TODO
         println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
 
     end
