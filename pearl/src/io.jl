@@ -5,7 +5,7 @@
 ###############################################################################
 using Printf
 """
-Lecture d'une instance Pearl depuis un fichier texte.
+Lecture d'un fichier texte qui décrit le jeu Pearl.
 
 Format du fichier :
   - Ligne 1 : n (taille grille)
@@ -124,7 +124,7 @@ function displaySolution(n::Int, pearls::Matrix{Int},
     println(bottom)
 end
 
-n = 6
+"""n = 6
 
 # 2. Création des segments (1.0 pour un trait, 0.0 pour du vide)
 # h[i, j] connecte la cellule (i, j) à (i, j+1)
@@ -147,4 +147,4 @@ v = [
 ]
 
 # 3. Appel de ta fonction
-displaySolution(n, pearls, h, v)
+displaySolution(n, pearls, h, v)"""

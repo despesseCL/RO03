@@ -8,12 +8,14 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve(n::int,d::Matrix{Int}, g::Matrix{Int})
+function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
 
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
     # x[i, j, k] = 1 if cell (i, j) has value k
     @variable(m, x[1:n, 1:n, 1:n], Bin)
+    # v[i, j, k] = 1 if cell (i, j) has value is visible by side k. 
+    #    k=1 on top ; k=2 on the left ; k=3 on the right ; k=4 on bottom
     @variable(m, v[1:n, 1:n, 1:4], Bin)
     # Set the fixed value in the grid
     for i in 1:n
@@ -27,26 +29,47 @@ function cplexSolve(n::int,d::Matrix{Int}, g::Matrix{Int})
     for j in 1:n
         if d[1,j] == 1
             @constraint(m, x[1,j,n] == 1)
+        end
         if d[2,j] == 1
             @constraint(m, x[j,1,n] == 1)
+        end
         if d[3,j] == 1
             @constraint(m, x[j,n,n] == 1)
+        end
         if d[4,j] == 1
             @constraint(m, x[n,j,n] == 1)  
-# If n on the side then linear increasing on rows or columns   
+        end
+    # If n on the side then linear increasing on rows or columns   
         if d[1,j] == n
-            for i in 1:n
-                @constraint(m, x[i,j,i] == 1)
+            @constraint(m, [i in 1:n], x[i,j,i] == 1)
+        end
         if d[2,j] == n
-            for i in 1:n
-                @constraint(m, x[j,i,i] == 1)
+            @constraint(m, [i in 1:n], x[j,i,i] == 1)
+        end
         if d[3,j] == n
-            for i in 1:n
-                @constraint(m, x[j,n-i+1,i] == 1)
+            @constraint(m, [i in 1:n] ,x[j,n-i+1,i] == 1)
+        end
         if d[4,j] == n
-            for i in 1:n
-                @constraint(m, x[n-i+1,j,i] == 1)
-    
+            @constraint(m, [i in 1:n], x[n-i+1,j,i] == 1)
+        end
+    end
+    # Each cell (i, j) has one value k
+    @constraint(m, [i in 1:n, j in 1:n], sum(x[i, j, k] for k in 1:n) == 1)
+
+    # Each line i has one cell with value k
+    @constraint(m, [k in 1:n, i in 1:n], sum(x[i, j, k] for j in 1:n) == 1)
+
+    # Each column c has one cell with value k
+    @constraint(m, [k in 1:n, j in 1:n], sum(x[i, j, k] for i in 1:n) == 1)
+
+    # The sum of visibility must be equal to the constraints (top and bottom)
+    @constraint(m, [i in 1:n], sum(v[i, j, 1] for j in 1:n) == d[1,i])
+    @constraint(m, [i in 1:n], sum(v[i, j, 4] for j in 1:n) == d[4,i])
+
+    # The sum of visibility must be equal to the constraints (sides)
+    @constraint(m, [j in 1:n], sum(v[i, j, 2] for i in 1:n) == d[2,j])
+    @constraint(m, [j in 1:n], sum(v[i, j, 3] for i in 1:n) == d[3,j])
+
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
 
