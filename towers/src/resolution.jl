@@ -106,7 +106,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             end
         end
     end
-    # Set the obvious cells (if 1 on n on the sides)
+"""    # Set the obvious cells (if 1 on n on the sides)
     for j in 1:n
         if d[1,j] == 1
             @constraint(m, x[1,j,n] == 1)
@@ -134,7 +134,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, [i in 1:n], x[n-i+1,j,i] == 1)
         end
     end
-
+"""
 
    # TOP (reading column j from row 1 downward)
     for j in 1:n
@@ -150,7 +150,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             # Mtop[i,j] ≤ max of all heights above and upper-bound by n
 
             # Visibility: vtop[i,j]=1 iff h[i,j] > Mtop[i,j]
-            @constraint(m, h[i, j] - Mtop[i, j] + n * vtop[i, j] >= 1)
+            @constraint(m, h[i, j] - Mtop[i, j] + n * (1 - vtop[i, j]) >= 1)
             @constraint(m, h[i, j] - Mtop[i, j] - n * vtop[i, j] <= 0)
         end
 
@@ -169,7 +169,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, Mbot[i, j] >= Mbot[i+1, j])
             @constraint(m, Mbot[i, j] >= h[i+1, j])
 
-            @constraint(m, h[i, j] - Mbot[i, j] + n * vbot[i, j] >= 1)
+            @constraint(m, h[i, j] - Mbot[i, j] + n * (1 - vbot[i, j]) >= 1)
             @constraint(m, h[i, j] - Mbot[i, j] - n * vbot[i, j] <= 0)
         end
 
@@ -187,7 +187,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, Mleft[i, j] >= Mleft[i, j-1])
             @constraint(m, Mleft[i, j] >= h[i, j-1])
 
-            @constraint(m, h[i, j] - Mleft[i, j] + n * vleft[i, j] >= 1)
+            @constraint(m, h[i, j] - Mleft[i, j] + n * (1 - vleft[i, j]) >= 1)
             @constraint(m, h[i, j] - Mleft[i, j] - n * vleft[i, j] <= 0)
         end
 
@@ -205,7 +205,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, Mright[i, j] >= Mright[i, j+1])
             @constraint(m, Mright[i, j] >= h[i, j+1])
 
-            @constraint(m, h[i, j] - Mright[i, j] + n * vright[i, j] >= 1)
+            @constraint(m, h[i, j] - Mright[i, j] + n * (1 - vright[i, j]) >= 1)
             @constraint(m, h[i, j] - Mright[i, j] - n * vright[i, j] <= 0)
         end
 

@@ -52,6 +52,70 @@ function readInputFile(inputFile::String)
 end
 
 
+function displayGrid(n::Int,d::Matrix{Int}, g::Matrix{Int})
+    # Afficher les indices du haut (top)
+        print("  ")
+    for j in 1:n
+        if d[1, j] != 0
+            print("   $(d[1, j])  ")
+        else
+            print("      ")
+        end
+    end
+    println()
+
+    # Bordure supérieure
+    println("  +" * ("-----+" ^ n))
+
+    for i in 1:n
+        # Indices de gauche (left)
+        if d[2, i] != 0
+            print("$(d[2, i]) |")
+        else
+            print("  |")
+        end
+
+        # Contenu des cellules
+        for j in 1:n
+            if g[i, j] != 0
+                print("  $(g[i, j])  |")
+            else
+                print("     |")
+            end
+        end
+
+        # Indices de droite (right)
+        if d[3, i] != 0
+            println(" $(d[3, i])")
+        else
+            println()
+        end
+
+        # Bordure intermédiaire
+        if i < n
+            println("  +" * ("-----+" ^ n))
+        end
+    end
+
+    # Bordure inférieure
+    println("  +" * ("-----+" ^ n))
+
+    # Afficher les indices du bas (bottom)
+    print("  ")
+    for j in 1:n
+        if d[4, j] != 0
+            print("   $(d[4, j])  ")
+        else
+            print("      ")
+        end
+    end
+    println()
+end
+
+
+function displaySolution(n::Int, d::Matrix{Int}, sol::Matrix{Int})
+    displayGrid(n, d, sol)
+end
 """
 Create a pdf file which contains a performance diagram associated to the results of the ../res folder
 Display one curve for each subfolder of the ../res folder.
