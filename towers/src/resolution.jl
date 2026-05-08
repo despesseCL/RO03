@@ -18,6 +18,9 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
     # x[i,j,k] = 1  iff cell (i,j) has height k
     @variable(m, x[1:n, 1:n, 1:n], Bin)
 
+        # h(i,j) = sum_k k * x[i,j,k] height of cell (i,j)
+    h = [sum(k * x[i, j, k] for k in 1:n) for i in 1:n, j in 1:n]
+
     # height of tallest tower seen so far
     # Mtop[i,j]   : max height in column j from top    up to (but not incl.) row i
     # Mbot[i,j]   : max height in column j from bottom up to (but not incl.) row i
@@ -35,8 +38,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
     @variable(m, vright[1:n, 1:n], Bin)
     
     @objective(m, Min, 0)
-    # h(i,j) = sum_k k * x[i,j,k] height of cell (i,j)
-    h = [sum(k * x[i, j, k] for k in 1:n) for i in 1:n, j in 1:n]
+
 
 """    for j in 1:n
         # Initialisation : le max à la première ligne est la hauteur de la tour
@@ -106,7 +108,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             end
         end
     end
-"""    # Set the obvious cells (if 1 on n on the sides)
+   # Set the obvious cells (if 1 on n on the sides)
     for j in 1:n
         if d[1,j] == 1
             @constraint(m, x[1,j,n] == 1)
@@ -134,7 +136,7 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, [i in 1:n], x[n-i+1,j,i] == 1)
         end
     end
-"""
+
 
    # TOP (reading column j from row 1 downward)
     for j in 1:n
@@ -148,10 +150,11 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             # Mtop[i,j] ≥ h[i-1,j]
             @constraint(m, Mtop[i, j] >= h[i-1, j])
             # Mtop[i,j] ≤ max of all heights above and upper-bound by n
+            @constraint(m, Mtop[i, j] <= Mtop[i-1, j] + h[i-1, j])  # borne haute
 
             # Visibility: vtop[i,j]=1 iff h[i,j] > Mtop[i,j]
-            @constraint(m, h[i, j] - Mtop[i, j] + n * (1 - vtop[i, j]) >= 1)
-            @constraint(m, h[i, j] - Mtop[i, j] - n * vtop[i, j] <= 0)
+            @constraint(m, h[i, j] >= Mtop[i, j] - n * (1 - vtop[i, j]) + 1)
+            @constraint(m, h[i, j]<= Mtop[i, j] + n * vtop[i, j])
         end
 
         # Clue constraint (skip if clue == 0)
@@ -169,8 +172,9 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, Mbot[i, j] >= Mbot[i+1, j])
             @constraint(m, Mbot[i, j] >= h[i+1, j])
 
-            @constraint(m, h[i, j] - Mbot[i, j] + n * (1 - vbot[i, j]) >= 1)
-            @constraint(m, h[i, j] - Mbot[i, j] - n * vbot[i, j] <= 0)
+            @constraint(m, h[i, j] >= Mbot[i, j] - n * (1 - vbot[i, j]) + 1)
+            @constraint(m, h[i, j]<= Mbot[i, j] + n * vbot[i, j])
+            @constraint(m, Mbot[i, j] <= Mbot[i+1, j] + h[i+1, j])  # borne haute
         end
 
         if d[4, j] != 0
@@ -187,8 +191,9 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
             @constraint(m, Mleft[i, j] >= Mleft[i, j-1])
             @constraint(m, Mleft[i, j] >= h[i, j-1])
 
-            @constraint(m, h[i, j] - Mleft[i, j] + n * (1 - vleft[i, j]) >= 1)
-            @constraint(m, h[i, j] - Mleft[i, j] - n * vleft[i, j] <= 0)
+            @constraint(m, h[i, j] >= Mleft[i, j] - n * (1 - vleft[i, j]) + 1)
+            @constraint(m, h[i, j]<= Mleft[i, j] + n * vleft[i, j])
+            @constraint(m, Mleft[i, j] <= Mleft[i, j-1] + h[i, j-1])  # borne haute
         end
 
         if d[2, i] != 0
@@ -204,9 +209,10 @@ function cplexSolve(n::Int,d::Matrix{Int}, g::Matrix{Int})
         for j in (n-1):-1:1
             @constraint(m, Mright[i, j] >= Mright[i, j+1])
             @constraint(m, Mright[i, j] >= h[i, j+1])
+            @constraint(m, Mright[i, j] <= Mright[i, j+1] + h[i, j+1])  # borne haute
 
-            @constraint(m, h[i, j] - Mright[i, j] + n * (1 - vright[i, j]) >= 1)
-            @constraint(m, h[i, j] - Mright[i, j] - n * vright[i, j] <= 0)
+            @constraint(m, h[i, j] >= Mright[i, j] - n * (1 - vright[i, j]) + 1)
+            @constraint(m, h[i, j]<= Mright[i, j] + n * vright[i, j])
         end
 
         if d[3, i] != 0
