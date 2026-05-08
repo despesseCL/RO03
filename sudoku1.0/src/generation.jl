@@ -106,7 +106,7 @@ Return: true if t[l, c] can be set to v; false otherwise
 function isValid(t::Array{Int64, 2}, l::Int64, c::Int64, v::Int64)
 
     n = size(t, 1)
-    isValid = true
+    isValid = true 
 
     # Test if v appears in column c
     l2 = 1
